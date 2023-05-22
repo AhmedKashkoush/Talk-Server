@@ -17,7 +17,10 @@ mongoose.connect('mongodb://127.0.0.1:27017/talkdb').then(() => {
         console.log('Server running on port:',port);
     })
     io.on('connection', socket => {
-        console.log(socket.id, 'connected');
+        console.log(socket.id, 'connected')
+        socket.on('message',() => {
+            console.log(socket.id, 'emitted')
+        })
     })
     io.listen(port)
 }).catch(err => {

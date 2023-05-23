@@ -10,6 +10,8 @@ const cors = require('cors')
 config()
 app.use(cors())
 
+const sockets = {}
+
 mongoose.connect('mongodb://127.0.0.1:27017/talkdb').then(() => {
     console.log('Database connected');
     const port = process.env.PORT || 4000
@@ -18,8 +20,23 @@ mongoose.connect('mongodb://127.0.0.1:27017/talkdb').then(() => {
     })
     io.on('connection', socket => {
         console.log(socket.id, 'connected')
-        socket.on('message',() => {
-            console.log(socket.id, 'emitted')
+        socket.on('connected',data => {
+            const {email} = data;
+            sockets[email] = socket.id;
+            console.log('Pool:',sockets);
+        })
+        socket.on('message',data => {
+            // console.log(socket.id, 'emitted:', data)
+            const {from,to,text} = data;
+            console.log(sockets[to]);
+            io.to(sockets[to]).emit('message',{from,text})
+            // io.to(sockets[to]).emit('message',{from,text})
+        })
+        socket.on('disconnect',() => {
+        
+            console.log(Object.keys(sockets).find(key => sockets[key] === socket.id));
+            delete sockets[Object.keys(sockets).find(key => sockets[key] === socket.id)]
+            console.log('Pool:',sockets);
         })
     })
     io.listen(port)

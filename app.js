@@ -15,9 +15,9 @@ const sockets = {}
 mongoose.connect('mongodb://127.0.0.1:27017/talkdb').then(() => {
     console.log('Database connected');
     const port = process.env.PORT || 4000
-    app.listen(port,'0.0.0.0', () => {
-        console.log('Server running on port:',port);
-    })
+    // app.listen(port,'0.0.0.0', () => {
+    //     console.log('Server running on port:',port);
+    // })
     io.on('connection', socket => {
         console.log(socket.id, 'connected')
         socket.on('connected',data => {
@@ -27,9 +27,9 @@ mongoose.connect('mongodb://127.0.0.1:27017/talkdb').then(() => {
         })
         socket.on('message',data => {
             // console.log(socket.id, 'emitted:', data)
-            const {from,to,text} = data;
+            const {from,to,text,createdAt} = data;
             console.log(sockets[to]);
-            io.to(sockets[to]).emit('message',{from,text})
+            io.to(sockets[to]).emit('message',{from,to,text,createdAt})
             // io.to(sockets[to]).emit('message',{from,text})
         })
         socket.on('disconnect',() => {
@@ -39,7 +39,10 @@ mongoose.connect('mongodb://127.0.0.1:27017/talkdb').then(() => {
             console.log('Pool:',sockets);
         })
     })
-    io.listen(port)
+    server.listen(port,'0.0.0.0', () => {
+        console.log('Server running on port:',port);
+    })
+    // io.listen(port)
 }).catch(err => {
     console.log('Database failed to connect:',err);
 });

@@ -6,7 +6,7 @@ config()
 const name = process.env.APP_NAME
 const user = process.env.MAIL_EMAIL
 
-const sendCode = (req, res) => {
+const sendCode = async(req, res) => {
   try {
     const { email } = req.body
     const code = Math.floor(Math.random() * 999999)
@@ -16,11 +16,10 @@ const sendCode = (req, res) => {
       subject: 'Verification',
       text: `Your verification code is ${code}`
     }
-    console.log(options);
-    sendMail(options)
-    success(res, 201, { message: 'code sent' })
+    const sent = await sendMail(options);
+    if (sent) success(res, 201, { message: 'code sent' })
   } catch (err) {
-    failure(res, 500, { message: 'failed' })
+    failure(res, 500, { message: `failed: ${err}` })
   }
 }
 

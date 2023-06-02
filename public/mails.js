@@ -8,14 +8,8 @@ const pass = process.env.MAIL_PASSWORD
 const auth = { user, pass }
 const options = { host, service, auth }
 const transporter = nodemailer.createTransport(options)
-const sendMail = (options,cb) => {
-  transporter.sendMail(options, (err, info) => {
-    if (err) {
-      console.log(err)
-    } else {
-      console.log(info.response)
-    }
-  })
+const sendMail = async (options) => {
+  return await transporter.sendMail(options)
 }
 
 // {

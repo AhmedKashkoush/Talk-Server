@@ -1,10 +1,11 @@
 const success = (res, code, options) => {
-  const { data, message } = options
+  const { data, message, token } = options
   return res.status(code || 200).json({
     status: 'success',
     code,
     data,
-    message
+    message,
+    token
   })
 }
 

@@ -39,6 +39,15 @@ const user = new Schema(
       type: Boolean,
       default: false
     },
+    image: {
+      type: String,
+      default: ''
+    },
+    isOnline: {
+      type: Boolean,
+      default: false
+    },
+    lastSeen: Date,
     otp: {
       type: String,
       default: ''

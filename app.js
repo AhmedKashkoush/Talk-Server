@@ -11,6 +11,8 @@ const cors = require('cors')
 const api = require('./routes/api')
 const logger = require('./middleware/logger')
 
+const User = require('./model/user')
+
 config()
 app.use(cors())
 
@@ -20,7 +22,7 @@ app.use(express.json())
 app.use(express.static(path.join(__dirname, '/public')))
 app.use(logger)
 
-mongoose.set("strictQuery",false)
+mongoose.set('strictQuery', false)
 mongoose
   .connect('mongodb://127.0.0.1:27017/talkdb')
   .then(() => {
@@ -32,9 +34,16 @@ mongoose
     // })
     io.on('connection', socket => {
       console.log(socket.id, 'connected')
-      socket.on('connected', data => {
+      socket.on('connected', async data => {
         const { email } = data
         sockets[email] = socket.id
+        const u = await User.findOneAndUpdate(
+          { email },
+          { $set: { isOnline: true, lastSeen: Date.now() } },
+          { new: true }
+        )
+        socket.broadcast.emit('online', { email })
+        console.log(u)
         console.log(`client: ${socket.id} connected`)
         console.log('pool:', sockets)
       })
@@ -45,10 +54,20 @@ mongoose
         io.to(sockets[to]).emit('message', { from, to, text, createdAt })
         // io.to(sockets[to]).emit('message',{from,text})
       })
-      socket.on('disconnect', () => {
+      socket.on('disconnect', async () => {
         console.log(
           Object.keys(sockets).find(key => sockets[key] === socket.id)
         )
+        const email = Object.keys(sockets).find(
+          key => sockets[key] === socket.id
+        )
+        const u = await User.findOneAndUpdate(
+          { email },
+          { $set: { isOnline: false, lastSeen: Date.now() } },
+          { new: true }
+        )
+        socket.broadcast.emit('offline', { email })
+        console.log(u)
         delete sockets[
           Object.keys(sockets).find(key => sockets[key] === socket.id)
         ]

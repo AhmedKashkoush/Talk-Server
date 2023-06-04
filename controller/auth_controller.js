@@ -34,11 +34,14 @@ const signup = async (req, res) => {
 
 const login = async (req, res) => {
   // SUCCESS CODE => 200
+  // BAD REQUES CODE => 400
   // USER NOT FOUND CODE => 404
   // WRONG CREDENTIALS | NOT VERIFIED CODE => 401
   // OTHERWISE CODE => 500
   try {
     const { email, password } = req.body
+    if (!email || !password)
+      return failure(res, 400, { message: 'provide email and password' })
     const user = await User.findOne({ email })
     if (!user) return failure(res, 404, { message: 'user does not exist' })
     const isMatched = compare(password, user.password)
@@ -46,8 +49,10 @@ const login = async (req, res) => {
       return failure(res, 401, { message: 'your credentials are not correct' })
     if (!user.isVerified)
       return failure(res, 401, { message: 'user is not verified' })
+    user.isOnline = true
+    await user.save()
     user.password = undefined
-    const token = jwt.sign({ ...user }, `${email}${user.password}`)
+    const token = jwt.sign({ ...user }, `${email}`)
     success(res, 200, { data: user, token })
   } catch (err) {
     failure(res, 500, { message: `failed: ${err}` })
@@ -56,12 +61,14 @@ const login = async (req, res) => {
 
 const sendCode = async (req, res) => {
   // SUCCESS CODE => 202
+  // BAD REQUES CODE => 400
   // USER NOT FOUND CODE => 404
   // OTHERWISE CODE => 500
   try {
     const name = process.env.APP_NAME
     const sender = process.env.MAIL_EMAIL
     const { email } = req.body
+    if (!email) return failure(res, 400, { message: 'provide email' })
     const user = await User.findOne({ email })
     if (!user) return failure(res, 404, { message: 'user does not exist' })
     const code = Math.floor(Math.random() * 999999).toString()
@@ -83,8 +90,30 @@ const sendCode = async (req, res) => {
   }
 }
 
-const verifyCode = (req, res) => {
+const verifyCode = async (req, res) => {
   // SUCCESS CODE => 202
+  // BAD REQUES CODE => 400
+  // NOT VERIFIED CODE => 401
+  // USER NOT FOUND CODE => 404
+  // USER ALREADY VERIFIED CODE => 409
+  // OTHERWISE CODE => 500
+  try {
+    const { email, code } = req.body
+    const user = await User.findOne({ email })
+    if (!email || !code)
+      return failure(res, 400, { message: 'provide email and code' })
+    if (!user) return failure(res, 404, { message: 'user does not exist' })
+    if (user.isVerified)
+      return failure(res, 409, { message: 'user is already verified' })
+    if (user.otp !== code)
+      return failure(res, 401, { message: 'verification failed' })
+    user.isVerified = true
+    user.otp = ''
+    await user.save()
+    success(res, 200, { message: 'verification success' })
+  } catch (err) {
+    failure(res, 500, { message: `failed: ${err}` })
+  }
 }
 
-module.exports = { signup, login, sendCode }
+module.exports = { signup, login, sendCode, verifyCode }

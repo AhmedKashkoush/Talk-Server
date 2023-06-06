@@ -47,6 +47,20 @@ mongoose
         console.log(`client: ${socket.id} connected`)
         console.log('pool:', sockets)
       })
+      socket.on('typing', data => {
+        // console.log(socket.id, 'emitted:', data)
+        const { to } = data
+        console.log(sockets[to])
+        io.to(sockets[to]).emit('typing', { to })
+        // io.to(sockets[to]).emit('message',{from,text})
+      })
+      socket.on('stop-typing', data => {
+        // console.log(socket.id, 'emitted:', data)
+        const { to } = data
+        console.log(sockets[to])
+        io.to(sockets[to]).emit('stop-typing', { to })
+        // io.to(sockets[to]).emit('message',{from,text})
+      })
       socket.on('message', data => {
         // console.log(socket.id, 'emitted:', data)
         const { from, to, text, createdAt } = data

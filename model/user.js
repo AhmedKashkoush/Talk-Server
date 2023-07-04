@@ -63,6 +63,18 @@ const user = new Schema(
         type: Schema.Types.ObjectId,
         ref: 'User'
       }
+    ],
+    chats: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Chat'
+      }
+    ],
+    blockList: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User'
+      }
     ]
   },
   {

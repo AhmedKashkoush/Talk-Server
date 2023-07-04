@@ -5,6 +5,7 @@ const { hash, compare } = require('../public/bcrypt')
 const { config } = require('dotenv')
 const User = require('../model/user')
 const jwt = require('jsonwebtoken')
+const locale = require('../public/locale')
 config()
 
 const signup = async (req, res) => {
@@ -13,6 +14,8 @@ const signup = async (req, res) => {
   // EMAIL TAKEN CODE => 409
   // OTHERWISE CODE => 500
   try {
+    const { lang } = req.query
+    const currentLocale = locale[lang || 'en']
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
       const message = errors.errors[0].msg
@@ -23,11 +26,11 @@ const signup = async (req, res) => {
     const user = new User(body)
     await user.save()
     console.log(user)
-    success(res, 200, { message: 'you signed in successfully' })
+    success(res, 200, { message: currentLocale.signedInSuccessfully })
   } catch (err) {
     console.log(err)
     if (err.code === 11000)
-      return failure(res, 409, { message: 'email is already taken' })
+      return failure(res, 409, { message: currentLocale.emailTaken })
     failure(res, 500, { message: err })
   }
 }
@@ -39,16 +42,18 @@ const login = async (req, res) => {
   // WRONG CREDENTIALS | NOT VERIFIED CODE => 401
   // OTHERWISE CODE => 500
   try {
+    const { lang } = req.query
+    const currentLocale = locale[lang || 'en']
     const { email, password } = req.body
     if (!email || !password)
-      return failure(res, 400, { message: 'provide email and password' })
+      return failure(res, 400, { message: currentLocale.provideEmailAndPassword })
     const user = await User.findOne({ email })
-    if (!user) return failure(res, 404, { message: 'user does not exist' })
+    if (!user) return failure(res, 404, { message: currentLocale.userNotExist })
     const isMatched = compare(password, user.password)
     if (!isMatched)
-      return failure(res, 401, { message: 'your credentials are not correct' })
+      return failure(res, 401, { message: currentLocale.credentialsNotCorrect })
     if (!user.isVerified)
-      return failure(res, 401, { message: 'user is not verified' })
+      return failure(res, 401, { message: currentLocale.userNotVerified })
     user.isOnline = true
     await user.save()
     user.password = undefined
@@ -67,23 +72,25 @@ const sendCode = async (req, res) => {
   try {
     const name = process.env.APP_NAME
     const sender = process.env.MAIL_EMAIL
+    const { lang } = req.query
+    const currentLocale = locale[lang || 'en']
     const { email } = req.body
-    if (!email) return failure(res, 400, { message: 'provide email' })
+    if (!email) return failure(res, 400, { message: currentLocale.provideEmail })
     const user = await User.findOne({ email })
-    if (!user) return failure(res, 404, { message: 'user does not exist' })
+    if (!user) return failure(res, 404, { message: currentLocale.userNotExist })
     const code = Math.floor(Math.random() * 999999).toString()
     const options = {
       from: `${name} <${sender}>`,
       to: email,
-      subject: 'Verification',
-      text: `Your verification code is ${code}`
+      subject: currentLocale.verification,
+      text: `${currentLocale.verificationCodeIs} ${code}`
     }
     const sent = await sendMail(options)
     if (sent) {
       user.otp = code
       console.log(user)
       await user.save()
-      success(res, 202, { message: 'code sent' })
+      success(res, 202, { message: currentLocale.codeSent })
     }
   } catch (err) {
     failure(res, 500, { message: `failed: ${err}` })
@@ -98,19 +105,21 @@ const verifyCode = async (req, res) => {
   // USER ALREADY VERIFIED CODE => 409
   // OTHERWISE CODE => 500
   try {
+    const { lang } = req.query
+    const currentLocale = locale[lang || 'en']
     const { email, code } = req.body
     const user = await User.findOne({ email })
     if (!email || !code)
-      return failure(res, 400, { message: 'provide email and code' })
-    if (!user) return failure(res, 404, { message: 'user does not exist' })
+      return failure(res, 400, { message: currentLocale.provideEmailAndCode })
+    if (!user) return failure(res, 404, { message: currentLocale.userNotExist })
     if (user.isVerified)
-      return failure(res, 409, { message: 'user is already verified' })
+      return failure(res, 409, { message: currentLocale.userVerified })
     if (user.otp !== code)
-      return failure(res, 401, { message: 'verification failed' })
+      return failure(res, 401, { message: currentLocale.verificationFailed })
     user.isVerified = true
     user.otp = ''
     await user.save()
-    success(res, 200, { message: 'verification success' })
+    success(res, 200, { message: currentLocale.verificationSuccess })
   } catch (err) {
     failure(res, 500, { message: `failed: ${err}` })
   }
